@@ -1,6 +1,6 @@
 # Project conventions
 
-Java 21, Spring Boot 3, PostgreSQL, Maven/Gradle wrapper, Docker Compose.
+Java 21, Spring Boot 4, PostgreSQL, Maven wrapper, Docker Compose.
 
 - Layers: controller → service → repository. Controllers only map HTTP; business logic lives in services.
 - DTOs are Java records; entities never leave the service layer.
