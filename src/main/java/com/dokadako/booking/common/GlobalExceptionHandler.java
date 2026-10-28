@@ -3,6 +3,7 @@ package com.dokadako.booking.common;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -26,6 +27,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadRequestException.class)
     ProblemDetail handleBadRequest(BadRequestException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    /** Thrown by Spring Data when a client sorts by a field that does not exist, e.g. {@code ?sort=foo}. */
+    @ExceptionHandler(PropertyReferenceException.class)
+    ProblemDetail handleUnknownProperty(PropertyReferenceException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                "Unknown sort property '%s'".formatted(ex.getPropertyName()));
     }
 
     @ExceptionHandler(ConflictException.class)

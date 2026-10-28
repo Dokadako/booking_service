@@ -14,7 +14,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
 import com.dokadako.booking.AbstractIntegrationTest;
-import com.jayway.jsonpath.JsonPath;
 
 class RoomIntegrationTest extends AbstractIntegrationTest {
 
@@ -90,20 +89,12 @@ class RoomIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.detail").value("Room %d not found".formatted(Long.MAX_VALUE)));
     }
 
-    private long createRoom(String token, String name) throws Exception {
-        String body = mockMvc.perform(post("/api/rooms")
-                        .header(HttpHeaders.AUTHORIZATION, token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(roomJson(name, 8)))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        return ((Number) JsonPath.read(body, "$.id")).longValue();
-    }
-
-    private static String roomJson(String name, int capacity) {
-        return """
-                {"name": "%s", "capacity": %d, "description": "Test room"}
-                """.formatted(name, capacity);
+    @Test
+    void shouldRejectUnknownSortProperty() throws Exception {
+        mockMvc.perform(get("/api/rooms")
+                        .param("sort", "doesNotExist")
+                        .header(HttpHeaders.AUTHORIZATION, adminToken()))
+                .andExpect(status().isBadRequest());
     }
 
     private static String uniqueName() {

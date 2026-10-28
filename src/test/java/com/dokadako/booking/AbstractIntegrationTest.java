@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -60,5 +61,22 @@ public abstract class AbstractIntegrationTest {
 
     protected String adminToken() throws Exception {
         return login(ADMIN_EMAIL, ADMIN_PASSWORD);
+    }
+
+    /** Creates a room with capacity 8 and returns its id; the token must belong to an admin. */
+    protected long createRoom(String token, String name) throws Exception {
+        String body = mockMvc.perform(post("/api/rooms")
+                        .header(HttpHeaders.AUTHORIZATION, token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(roomJson(name, 8)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return ((Number) JsonPath.read(body, "$.id")).longValue();
+    }
+
+    protected static String roomJson(String name, int capacity) {
+        return """
+                {"name": "%s", "capacity": %d, "description": "Test room"}
+                """.formatted(name, capacity);
     }
 }
