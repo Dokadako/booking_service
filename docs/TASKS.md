@@ -5,7 +5,7 @@ and is meant to be written by hand: it is what you will be asked about in interv
 
 After each task: run `test-writer`, then `code-reviewer`, and fix every Blocker and Major before committing.
 
-## 1. Bookings: create and list
+## 1. Bookings: create and list ✅
 - Migration `V3__create_bookings.sql`: `id`, `room_id` (FK), `user_id` (FK), `starts_at`, `ends_at` (TIMESTAMPTZ),
   `status` (`CONFIRMED` / `CANCELLED`), `created_at`, `version` (for optimistic locking).
 - `POST /api/bookings` `{roomId, startsAt, endsAt}`, `GET /api/bookings/my` (paged).
@@ -24,6 +24,8 @@ Two bookings of the same room must not overlap: `a.start < b.end AND b.start < a
 
 ## 3. Cancel and ownership
 - `DELETE /api/bookings/{id}`: only the owner or an admin; cannot cancel a booking that already started.
+- Deleting a room that has bookings currently fails on the foreign key with a 500. Decide: forbid it with `409`,
+  or replace hard delete with deactivating the room (keeps booking history), and test it.
 - Test that user A cannot see or cancel user B's booking (IDOR), expecting `404`, not `403`.
 
 ## 4. Availability

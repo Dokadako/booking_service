@@ -4,7 +4,7 @@ REST API for booking meeting rooms: users register, browse rooms and book time s
 administrators manage rooms. The focus is correctness under concurrent requests
 (no double booking), security and test coverage.
 
-> Status: in progress. Auth and room management are done; bookings are being built (see [docs/TASKS.md](docs/TASKS.md)).
+> Status: in progress. Auth, room management and creating/listing bookings are done; double-booking prevention is next (see [docs/TASKS.md](docs/TASKS.md)).
 
 ## Stack
 Java 21 · Spring Boot 4 · Spring Security (JWT, OAuth2 resource server) · Spring Data JPA / Hibernate ·
@@ -15,7 +15,7 @@ PostgreSQL · Flyway · JUnit 5, Mockito, Testcontainers · Docker Compose · Gi
 controller  →  service (@Transactional, business rules)  →  repository (Spring Data JPA)  →  PostgreSQL
    DTOs (records)        entities never leave the service layer         schema via Flyway migrations
 ```
-Code is organised by feature (`auth`, `user`, `room`), not by layer. Errors are returned as
+Code is organised by feature (`auth`, `user`, `room`, `booking`), not by layer. Errors are returned as
 RFC 9457 problem details from a single `GlobalExceptionHandler`.
 
 ## Run locally
@@ -39,6 +39,11 @@ Integration tests start a real PostgreSQL with Testcontainers, so Docker must be
 | POST | `/api/auth/login` | public |
 | GET | `/api/rooms`, `/api/rooms/{id}` | authenticated |
 | POST, PUT, DELETE | `/api/rooms`, `/api/rooms/{id}` | ADMIN |
+| POST | `/api/bookings` | authenticated |
+| GET | `/api/bookings/my` | authenticated (own bookings only) |
+
+Booking rules: starts in the future, both ends on a 15-minute boundary, lasts from 15 minutes to 8 hours.
+Times are ISO-8601 instants in UTC, e.g. `2026-11-02T09:00:00Z`.
 
 ## Security notes
 - Passwords hashed with BCrypt; login returns the same error for unknown email and wrong password.
