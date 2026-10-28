@@ -42,7 +42,8 @@ Integration tests start a real PostgreSQL with Testcontainers, so Docker must be
 | POST | `/api/bookings` | authenticated |
 | GET | `/api/bookings/my` | authenticated (own bookings only) |
 
-Booking rules: starts in the future, both ends on a 15-minute boundary, lasts from 15 minutes to 8 hours.
+Booking rules: starts in the future but at most 90 days ahead, both ends on a 15-minute boundary, lasts from 15 minutes to 8 hours.
+`GET /api/bookings/my` can be sorted by `startsAt`, `endsAt`, `createdAt`, `status`, `roomName`, e.g. `?sort=roomName,asc`.
 Times are ISO-8601 instants in UTC, e.g. `2026-11-02T09:00:00Z`.
 
 ## Security notes

@@ -1,5 +1,7 @@
 package com.dokadako.booking.room;
 
+import java.util.Map;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -7,9 +9,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.dokadako.booking.common.ConflictException;
 import com.dokadako.booking.common.NotFoundException;
+import com.dokadako.booking.common.PageRequests;
 
 @Service
 class RoomService {
+
+    private static final Map<String, String> SORTABLE_FIELDS = Map.of(
+            "id", "id",
+            "name", "name",
+            "capacity", "capacity");
 
     private final RoomRepository roomRepository;
 
@@ -19,7 +27,8 @@ class RoomService {
 
     @Transactional(readOnly = true)
     Page<RoomDtos.RoomResponse> findAll(Pageable pageable) {
-        return roomRepository.findAll(pageable).map(RoomDtos.RoomResponse::from);
+        return roomRepository.findAll(PageRequests.withAllowedSort(pageable, SORTABLE_FIELDS))
+                .map(RoomDtos.RoomResponse::from);
     }
 
     @Transactional(readOnly = true)

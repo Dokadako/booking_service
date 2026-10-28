@@ -29,6 +29,9 @@ class BookingIntegrationTest extends AbstractIntegrationTest {
     private static final DateTimeFormatter WIRE_FORMAT =
             DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss'Z'").withZone(ZoneOffset.UTC);
 
+    private static final String MALFORMED_BODY =
+            "Malformed request body; times must be ISO-8601 instants in UTC, e.g. 2026-11-02T09:00:00Z";
+
     // --- create ---
 
     @Test
@@ -106,7 +109,10 @@ class BookingIntegrationTest extends AbstractIntegrationTest {
                         "Booking must start and end on a 15-minute boundary"),
                 Arguments.of("longer than 8 hours",
                         Duration.ZERO, Duration.ofHours(8).plusMinutes(15),
-                        "Booking must last from 15 minutes to 8 hours"));
+                        "Booking must last from 15 minutes to 8 hours"),
+                Arguments.of("more than 90 days ahead",
+                        Duration.ofDays(91), Duration.ofDays(91).plusHours(1),
+                        "Booking can start at most 90 days ahead"));
     }
 
     @Test
@@ -158,7 +164,25 @@ class BookingIntegrationTest extends AbstractIntegrationTest {
                         .content("""
                                 {"roomId": %d, "startsAt": "tomorrow at nine", "endsAt": "%s"}
                                 """.formatted(roomId, tomorrow())))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(MALFORMED_BODY));
+    }
+
+    @Test
+    void shouldRejectLocalTimeWithoutZoneAndExplainTheFormat() throws Exception {
+        // given
+        long roomId = createRoom(adminToken(), uniqueRoomName());
+        String user = registerAndLogin(uniqueEmail());
+
+        // when / then
+        mockMvc.perform(post("/api/bookings")
+                        .header(HttpHeaders.AUTHORIZATION, user)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"roomId": %d, "startsAt": "2030-11-02T09:00:00", "endsAt": "2030-11-02T10:00:00"}
+                                """.formatted(roomId)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(MALFORMED_BODY));
     }
 
     @Test
@@ -263,7 +287,43 @@ class BookingIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/bookings/my")
                         .param("sort", "doesNotExist")
                         .header(HttpHeaders.AUTHORIZATION, user))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Unknown sort property 'doesNotExist'"));
+    }
+
+    @Test
+    void shouldNotAllowSortingByInternalEntityFields() throws Exception {
+        // given
+        String user = registerAndLogin(uniqueEmail());
+
+        // when / then
+        for (String internalField : new String[] {"user.passwordHash", "user", "room.id", "version"}) {
+            mockMvc.perform(get("/api/bookings/my")
+                            .param("sort", internalField)
+                            .header(HttpHeaders.AUTHORIZATION, user))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail").value("Unknown sort property '%s'".formatted(internalField)));
+        }
+    }
+
+    @Test
+    void shouldSortByRoomName() throws Exception {
+        // given
+        String admin = adminToken();
+        long roomB = createRoom(admin, "B " + UUID.randomUUID());
+        long roomA = createRoom(admin, "A " + UUID.randomUUID());
+        String user = registerAndLogin(uniqueEmail());
+        Instant startsAt = tomorrow();
+        long bookingInB = createBooking(user, roomB, startsAt, startsAt.plus(Duration.ofHours(1)));
+        long bookingInA = createBooking(user, roomA, startsAt, startsAt.plus(Duration.ofHours(1)));
+
+        // when / then
+        mockMvc.perform(get("/api/bookings/my")
+                        .param("sort", "roomName,asc")
+                        .header(HttpHeaders.AUTHORIZATION, user))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(bookingInA))
+                .andExpect(jsonPath("$.content[1].id").value(bookingInB));
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.dokadako.booking.booking;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.dokadako.booking.common.NotFoundException;
+import com.dokadako.booking.common.PageRequests;
 import com.dokadako.booking.room.Room;
 import com.dokadako.booking.room.RoomRepository;
 import com.dokadako.booking.user.User;
@@ -16,6 +18,13 @@ import com.dokadako.booking.user.UserRepository;
 
 @Service
 class BookingService {
+
+    private static final Map<String, String> SORTABLE_FIELDS = Map.of(
+            "startsAt", "startsAt",
+            "endsAt", "endsAt",
+            "createdAt", "createdAt",
+            "status", "status",
+            "roomName", "room.name");
 
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
@@ -46,6 +55,7 @@ class BookingService {
 
     @Transactional(readOnly = true)
     Page<BookingDtos.BookingResponse> findByUser(long userId, Pageable pageable) {
-        return bookingRepository.findByUserId(userId, pageable).map(BookingDtos.BookingResponse::from);
+        return bookingRepository.findByUserId(userId, PageRequests.withAllowedSort(pageable, SORTABLE_FIELDS))
+                .map(BookingDtos.BookingResponse::from);
     }
 }

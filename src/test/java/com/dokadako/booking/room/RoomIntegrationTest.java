@@ -94,7 +94,8 @@ class RoomIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/rooms")
                         .param("sort", "doesNotExist")
                         .header(HttpHeaders.AUTHORIZATION, adminToken()))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("Unknown sort property 'doesNotExist'"));
     }
 
     private static String uniqueName() {

@@ -26,6 +26,7 @@ class BookingTimeRulesTest {
     private static final String START_IN_FUTURE = "Booking must start in the future";
     private static final String ALIGNED_TO_SLOT = "Booking must start and end on a 15-minute boundary";
     private static final String DURATION_RANGE = "Booking must last from 15 minutes to 8 hours";
+    private static final String MAX_ADVANCE = "Booking can start at most 90 days ahead";
 
     private final BookingTimeRules rules = rulesAt(NOW);
 
@@ -267,6 +268,27 @@ class BookingTimeRulesTest {
         assertThatThrownBy(() -> rules.check(startsAt, endsAt))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage(DURATION_RANGE);
+    }
+
+    @Test
+    void shouldAcceptStartExactlyNinetyDaysAhead() {
+        // given
+        Instant startsAt = NOW.plus(Duration.ofDays(90));
+
+        // when / then
+        assertThatCode(() -> rules.check(startsAt, startsAt.plus(Duration.ofHours(1))))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldRejectStartMoreThanNinetyDaysAhead() {
+        // given
+        Instant startsAt = NOW.plus(Duration.ofDays(90)).plus(Duration.ofMinutes(15));
+
+        // when / then
+        assertThatThrownBy(() -> rules.check(startsAt, startsAt.plus(Duration.ofHours(1))))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage(MAX_ADVANCE);
     }
 
     private static BookingTimeRules rulesAt(Instant now) {

@@ -18,6 +18,7 @@ class BookingTimeRules {
     static final Duration SLOT = Duration.ofMinutes(15);
     static final Duration MIN_DURATION = SLOT;
     static final Duration MAX_DURATION = Duration.ofHours(8);
+    static final Duration MAX_ADVANCE = Duration.ofDays(90);
 
     private final Clock clock;
 
@@ -29,8 +30,12 @@ class BookingTimeRules {
         if (!startsAt.isBefore(endsAt)) {
             throw new BadRequestException("Booking must start before it ends");
         }
-        if (!startsAt.isAfter(Instant.now(clock))) {
+        Instant now = Instant.now(clock);
+        if (!startsAt.isAfter(now)) {
             throw new BadRequestException("Booking must start in the future");
+        }
+        if (startsAt.isAfter(now.plus(MAX_ADVANCE))) {
+            throw new BadRequestException("Booking can start at most 90 days ahead");
         }
         if (!isAlignedToSlot(startsAt) || !isAlignedToSlot(endsAt)) {
             throw new BadRequestException("Booking must start and end on a 15-minute boundary");
