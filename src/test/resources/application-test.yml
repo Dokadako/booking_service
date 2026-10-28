@@ -1,0 +1,8 @@
+app:
+  jwt:
+    # test-only key, never used outside tests
+    secret: dGVzdC1vbmx5LXNlY3JldC1rZXktZm9yLWp3dC0zMi1ieXRlcyE=
+    ttl: 15m
+  admin:
+    email: admin@test.local
+    password: admin-password
